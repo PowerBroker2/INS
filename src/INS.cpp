@@ -220,7 +220,7 @@ void CompFilt::update(const Vector3f& b_a_s,
         Quaternionf q_err = q_am * q_g.conjugate();
 
         // 3. Gain
-        float alpha = 1.0f - std::exp(-dt / tau);
+        float alpha = 1.0f - expf(-dt / tau);
 
         // 4. Apply partial correction
         AngleAxisf  aa(q_err);
