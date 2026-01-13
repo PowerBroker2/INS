@@ -25,8 +25,8 @@ using Eigen::AngleAxisf;
 
 
 
-float lat = 37.7749f;    // San Francisco latitude
-float lon = -122.4194f;  // San Francisco longitude
+float lat =  40.7128;
+float lon = -74.0060;
 
 
 
@@ -110,9 +110,12 @@ void setup()
     Serial.begin(115200);
 
     forceAllPinsHigh();
+
     setupIGRF();
     setupIMU();
     setupMag();
+
+    compAHRS.updateTau(0.5);
 }
 
 
@@ -126,27 +129,33 @@ void loop()
     mag.getEvent(&magEvent);
 
     Vector3f rawAccel;
-    rawAccel << accelEvent.acceleration.x,
-                accelEvent.acceleration.y,
-                accelEvent.acceleration.z;
+    rawAccel << -accelEvent.acceleration.x,
+                -accelEvent.acceleration.y,
+                 accelEvent.acceleration.z;
 
     Vector3f rawGyro;
-    rawGyro << gyroEvent.gyro.x,
-               gyroEvent.gyro.y,
-               gyroEvent.gyro.z;
+    rawGyro << -gyroEvent.gyro.x,
+               -gyroEvent.gyro.y,
+                gyroEvent.gyro.z;
 
     Vector3f rawMag;
-    rawMag << magEvent.magnetic.x,
-              magEvent.magnetic.y,
-              magEvent.magnetic.z;
+    rawMag <<  magEvent.magnetic.y,
+              -magEvent.magnetic.x,
+               magEvent.magnetic.z;
     
-    Vector3f calAccel = accelProc.process(rawAccel);
-    Vector3f calGyro  = gyroProc.process(rawGyro);
-    Vector3f calMag   = magProc.process(rawMag);
+    // Vector3f calAccel = accelProc.process(rawAccel);
+    // Vector3f calGyro  = gyroProc.process(rawGyro);
+    // Vector3f calMag   = magProc.process(rawMag);
 
-    compAHRS.update(calAccel, calGyro, calMag, timestamp);
+    compAHRS.update(rawAccel, rawGyro, rawMag, timestamp);
     Vector3f eulers = compAHRS.get_b_R_ang_n();
 
-    printVec(eulers);
+    Serial.print(eulers(0));
+    Serial.print(',');
+    Serial.print(eulers(1));
+    Serial.print(',');
+    Serial.print(eulers(2));
+    Serial.println();
+
     delay(1);
 }
