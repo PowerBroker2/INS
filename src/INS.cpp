@@ -149,7 +149,7 @@ Quaternionf deltaQuatFromGyro(const Vector3f& omega_b, float dt)
 
 Vector3f CompFilt::get_b_R_ang_n()
 {
-    return quatToEuler(q_am);
+    return quatToEuler(q_bn);
 }
 
 
@@ -213,7 +213,7 @@ void CompFilt::update(const Vector3f& b_a_s,
     if (isInit)
     {
         // 1. Gyro integration
-        Quaternionf dq  = deltaQuatFromGyro(omega_b, dt);
+        Quaternionf dq  = deltaQuatFromGyro(b_g_s, dt);
         Quaternionf q_g = q_bn * dq;
 
         // 2. Error quaternion

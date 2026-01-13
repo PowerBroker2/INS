@@ -80,10 +80,10 @@ float wrapYaw(float angle);
  *   - Behavior is undefined if gravity and magnetic field vectors become
  *     collinear or near-zero.
  */
-Matrix3f statAttQuat(const Vector3f& b_a_s,
-                     const Vector3f& b_m_s,
-                     const Vector3f& n_M = Vector3f(1, 0, 0),
-                     const Vector3f& n_G = Vector3f(0, 0, 1));
+Quaternionf statAttQuat(const Vector3f& b_a_s,
+                        const Vector3f& b_m_s,
+                        const Vector3f& n_M = Vector3f(1, 0, 0),
+                        const Vector3f& n_G = Vector3f(0, 0, 1));
 
 Vector3f quatToEuler(const Quaternionf&      q,
                            NavFrame          frame = NavFrame::NED,
@@ -94,6 +94,17 @@ Vector3f quatToEuler(const Quaternionf&      q,
 class CompFilt
 {
 public:
+    CompFilt()
+        : isInit(false),
+          tau(0),
+          n_G(0.0, 0.0, 9.81),
+          n_M(1.0, 0.0, 0.0),
+          timestamp(0.0),
+          prevTimestamp(0.0),
+          dt(0.0),
+          q_bn(Quaternionf::Identity())
+    {}
+
     Vector3f    get_b_R_ang_n();  // Euler angles that describes the intrinsic frame rotation from the NED frame to the vehicle's body frame
     Quaternionf get_b_R_quat_n(); // Quaternion   that describes the intrinsic frame rotation from the NED frame to the vehicle's body frame
 
@@ -108,17 +119,6 @@ public:
     virtual ~CompFilt() = default;
 
 protected:
-    CompFilt()
-        : isInit(flase),
-          tau(0),
-          n_M(1.0, 0.0, 0.0),
-          n_G(0.0, 0.0, 9.81),
-          timestamp(0.0),
-          prevTimestamp(0.0),
-          dt(0.0),
-          b_R_quat_n(Quaternionf::Identity())
-    {}
-
     bool  isInit;
     float tau;
 
