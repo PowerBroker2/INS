@@ -36,55 +36,76 @@ enum class RotationDirection
     NavToBody  ///< Quaternion rotates from navigation frame to body frame
 };
 
-// https://stackoverflow.com/a/11498248/9860973
-float wrapPitch(float angle);
-
-// https://stackoverflow.com/a/11498248/9860973
-float wrapRoll(float angle);
-
-// https://stackoverflow.com/a/11498248/9860973
-float wrapYaw(float angle);
-
-// https://stackoverflow.com/a/11498248/9860973
-float wrapYaw(float angle);
-
 /**
- * @brief Compute static body-to-NED attitude quaternion using a 2-vector TRIAD solution.
+ * @brief Compute attitude quaternion from accelerometer and magnetometer vectors.
  *
- * This function estimates the sensor orientation assuming the sensor is
- * stationary (no rotation, no linear acceleration). The attitude is determined
- * by aligning:
- *   - the measured gravity direction (from accelerometer)
- *   - the measured Earth magnetic field direction (from magnetometer)
- * with their known reference directions in the NED frame.
+ * This function estimates the body-to-navigation frame orientation using
+ * measured accelerometer and magnetometer vectors in the body frame and
+ * known gravity and magnetic field directions in the navigation frame.
  *
- * The method implements a closed-form 2-vector Wahba / TRIAD solution:
- *   1. Construct orthonormal triads in the NED frame using n_G and n_M.
- *   2. Construct orthonormal triads in the body frame using b_a_s and b_m_s.
- *   3. Compute the rotation matrix that aligns the body triad to the NED triad.
+ * The algorithm constructs orthonormal bases in both frames:
+ *  - The "Down" axis is defined by gravity (accelerometer / reference gravity)
+ *  - The "North" axis is obtained by projecting the magnetic field onto the
+ *    horizontal plane (orthogonal to gravity)
+ *  - The "East" axis is formed by the cross product of Down and North
  *
- * @param b_a_s  Specific force measured by the accelerometer in the body frame
- *               (m/s²). When static, this vector is approximately −gravity.
- * @param b_m_s  Earth magnetic field measured by the magnetometer in the body
- *               frame (arbitrary units, calibrated).
- * @param n_M    Earth magnetic field vector expressed in the NED frame.
- *               Includes magnetic inclination and declination.
- * @param n_G    Gravity vector expressed in the NED frame (typically [0, 0, 1]).
+ * The resulting rotation matrix is converted to a quaternion representing
+ * the rotation from body frame to navigation frame.
  *
- * @return Quaternionf representing the rotation from body frame to NED frame.
- *         The quaternion satisfies:
- *           v_ned = q * v_body * q⁻¹
+ * @param b_a_s Measured specific force (accelerometer) vector in body frame.
+ *              Expected to point opposite to gravity.
+ * @param b_m_s Measured magnetic field vector in body frame.
+ * @param n_M   Reference magnetic field vector in navigation frame.
+ * @param n_G   Reference gravity vector in navigation frame.
  *
- * @warning
- *   - This method is sensitive to noise and magnetic disturbances.
- *   - Behavior is undefined if gravity and magnetic field vectors become
- *     collinear or near-zero.
+ * @return Quaternionf representing the rotation from body frame to navigation frame.
+ *
+ * @note All input vectors must be non-zero and non-collinear with gravity.
+ * @note Magnetometer vectors are assumed to be free of hard/soft iron distortion.
+ * @note The resulting quaternion is normalized implicitly via orthonormal bases.
  */
 Quaternionf statAttQuat(const Vector3f& b_a_s,
                         const Vector3f& b_m_s,
                         const Vector3f& n_M = Vector3f(1, 0, 0),
                         const Vector3f& n_G = Vector3f(0, 0, 1));
 
+/**
+ * @brief Convert a quaternion to Euler angles (roll, pitch, yaw).
+ *
+ * This function converts an orientation quaternion into Euler angles using
+ * a ZYX rotation sequence (yaw–pitch–roll). It supports intrinsic and extrinsic
+ * rotation conventions, navigation frame selection (NED or ENU), angle units,
+ * and rotation direction.
+ *
+ * The quaternion is normalized for numerical safety. If the quaternion
+ * represents a navigation-to-body rotation, it is inverted internally to
+ * obtain a body-to-navigation rotation before conversion.
+ *
+ * A direction cosine matrix (DCM) is formed from the quaternion and optionally
+ * transformed between NED and ENU navigation frames prior to Euler extraction.
+ *
+ * @param q     Input orientation quaternion.
+ * @param frame Navigation frame convention:
+ *              - NavFrame::NED (North-East-Down)
+ *              - NavFrame::ENU (East-North-Up)
+ * @param type  Rotation convention:
+ *              - RotationType::Intrinsic (body-fixed rotations)
+ *              - RotationType::Extrinsic (space-fixed rotations)
+ * @param angle Output angle unit:
+ *              - AngleUnit::Radians
+ *              - AngleUnit::Degrees
+ * @param dir   Direction of the rotation represented by the quaternion:
+ *              - RotationDirection::BodyToNav
+ *              - RotationDirection::NavToBody
+ *
+ * @return Vector3f containing Euler angles in the order:
+ *         (roll, pitch, yaw).
+ *
+ * @note Euler angles follow a ZYX sequence (yaw–pitch–roll).
+ * @note Gimbal lock occurs at ±90° pitch.
+ * @note ENU/NED conversion assumes standard axis definitions.
+ * @note The returned angles are in radians unless degrees are requested.
+ */
 Vector3f quatToEuler(const Quaternionf&      q,
                            NavFrame          frame = NavFrame::NED,
                            RotationType      type  = RotationType::Intrinsic,
