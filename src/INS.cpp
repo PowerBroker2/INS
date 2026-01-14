@@ -5,40 +5,6 @@
 
 
 
-float wrapPitch(float angle)
-{
-    float out = fmod(angle + 180, 360);
-
-    if (out < 0)
-        out += 360;
-    
-    return out - 180;
-}
-
-
-
-
-float wrapRoll(float angle)
-{
-    float out = fmod(angle + 180, 360);
-
-    if (out < 0)
-        out += 360;
-    
-    return out - 180;
-}
-
-
-
-
-float wrapYaw(float angle)
-{
-    return fmod(angle + 360, 360);
-}
-
-
-
-
 Quaternionf statAttQuat(const Vector3f& b_a_s,
                         const Vector3f& b_m_s,
                         const Vector3f& n_M,
